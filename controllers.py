@@ -50,7 +50,7 @@ def create_user():
     if '@' not in email:
         return jsonify(success=False, message="Please enter a valid email"), 400
 
-    u = User(name, email, password)
+    u = User(name, email, password,0,0)
     db.session.add(u)
     try:
         db.session.commit()
