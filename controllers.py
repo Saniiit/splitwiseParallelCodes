@@ -1,60 +1,75 @@
 from flask import Blueprint, request, session, jsonify
-from sqlalchemy.exc import IntegrityError
-from app import db
-from .models import User
+from app import db, requires_auth
+from .models import Transaction
 
-mod_user = Blueprint('user', __name__, url_prefix='/api')
-#mod_user is an instance of Blueprint class. You can have several such instances across
-#your project.
+#from validate_email import validate_email
+mod_transaction = Blueprint('transaction', __name__, url_prefix='/api')
 
-@mod_user.route('/login', methods=['GET'])
-def check_login():
-    if 'user_id' in session:
-        user = User.query.filter(User.id == session['user_id']).first()
-        return jsonify(success=True, user=user.to_dict())
+@mod_transaction.route('/transaction', methods=['POST'])
+@requires_auth
+def create_bill():
 
-    return jsonify(success=False), 401
+    description = request.form['description']
+    amount = request.form['amount']
+    majorSplit = request.form['majorSplit']
+    split_amongst = request.form['split_amongst']
+    status = False
 
+    transaction = Transaction(description, amount, majorSplit, split_amongst, status)
+    db.session.add(transaction)
+    db.session.commit()
+    return jsonify(success=True, transaction = transaction.to_dict())
 
-@mod_user.route('/login', methods=['POST'])
-def login():
-    try:
-        email = request.form['email']
-        password = request.form['password']
-    except KeyError as e:
-        return jsonify(success=False, message="%s not sent in the request" % e.args), 400
+#doubt --- how do i retrive the user-ids stored in the
+@mod_transaction.route('/transaction/allbills', methods=['GET'])
+@requires_auth
+def get_all_bills():
 
-    user = User.query.filter(User.email == email).first()
-    if user is None or not user.check_password(password):
-        return jsonify(success=False, message="Invalid Credentials"), 400
+    user_id = session['user_id']
+    transactions = Transaction.query.filter(Transaction.user_id == user_id).all()
+    return jsonify(success=True, transactions = [transaction.to_dict() for transaction in transactions])
 
-    session['user_id'] = user.id
-    #Notice this is how we login the user, by adding his id to the session dictionary.
+@mod_transaction.route('/transaction/<id>', methods=['POST'])
+@requires_auth
+def edit_bill(id):
 
-    return jsonify(success=True, user=user.to_dict())
-
-@mod_user.route('/logout', methods=['POST'])
-def logout():
-    session.pop('user_id')
-    return jsonify(success=True)
-
-@mod_user.route('/signup', methods=['POST'])
-def create_user():
-    try:
-        name = request.form['name']
-        email = request.form['email']
-        password = request.form['password']
-    except KeyError as e:
-        return jsonify(success=False, message="%s not sent in the request" % e.args), 400
-
-    if '@' not in email:
-        return jsonify(success=False, message="Please enter a valid email"), 400
-
-    u = User(name, email, password,0,0)
-    db.session.add(u)
-    try:
+    user_id = session['user_id']
+    transaction = Transaction.query.filter(Transaction.id == id, Transaction.user_id == user_id).first()
+    if transaction is None:
+        return jsonify(success=False), 404
+    else:
+        transaction.description = request.form['description']
+        transaction.amount = request.form['amount']
+        transaction.majorSplit = request.form['majorSplit']
+        transaction.split_amongst = request.form['split_amongst']
         db.session.commit()
-    except IntegrityError as e:
-        return jsonify(success=False, message="This email already exists"), 400
+        return jsonify(success=True)
 
-    return jsonify(success=True)
+@mod_transaction.route('/transaction/<id>/settle-up', methods=['POST'])
+@requires_auth
+def settle_bill(id):
+
+    user_id = session['user_id']
+    transaction = Transaction.query.filter(Transaction.id == id, Transaction.user_id == user_id).first()
+#* updating the balance ???????
+    if transaction is None:
+        return jsonify(success=False), 404
+    else:
+        # transaction.status = True
+        db.session.delete(transaction)  #* can we just not delete the table in the transaction_table--------- for settling up
+        # need to update the status
+        db.session.commit()
+        return jsonify(success=True)
+
+@mod_transaction.route('/transaction/<id>/delete', methods=['POST'])
+@requires_auth
+def delete_bill(id):
+
+    user_id = session['user_id']
+    transaction = Transaction.query.filter(Transaction.id == id, Transaction.user_id == user_id).first()
+    if transaction is None:
+        return jsonify(success=False), 404
+    else:
+        db.session.delete(transaction)
+        db.session.commit()
+        return jsonify(success=True)

@@ -8,12 +8,14 @@ class Transaction(db.Model):
     amount = db.Column(db.Integer)
     majorSplit = db.Column(db.String(255))
     split_amongst = db.Column(db.String(255))
+    status = db.Column(db.boolean)
 
-    def __init__(self, description, amount, majorSplit, split_amongst):
+    def __init__(self, description, amount, majorSplit, split_amongst, status):
         self.description = description
         self.amount = amount
         self.majorSplit = majorSplit
         self.split_amongst = split_amongst
+        self.status = status
 
     def to_dict(self):
         return {
@@ -22,6 +24,7 @@ class Transaction(db.Model):
             'amount': self.amount,
             'majorSplit': self.majorSplit,
             'split_amongst': self.split_amongst,
+            'status': self.status,
         }
 
     def __repr__(self):
