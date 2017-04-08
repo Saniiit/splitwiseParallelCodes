@@ -1,3 +1,0 @@
-First of all after the login and password is done.
-The next step is to write the transaction controllers URL
-So Plss start doing the front end right now........ 
