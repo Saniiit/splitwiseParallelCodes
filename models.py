@@ -8,7 +8,7 @@ class Transaction(db.Model):
     amount = db.Column(db.Integer)
     majorSplit = db.Column(db.String(255))
     split_amongst = db.Column(db.String(255))
-    status = db.Column(db.boolean)
+    status = db.Column(db.Integer)
 
     def __init__(self, description, amount, majorSplit, split_amongst, status):
         self.description = description
