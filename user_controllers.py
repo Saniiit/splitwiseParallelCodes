@@ -2,6 +2,8 @@ from flask import Blueprint, request, session, jsonify
 from sqlalchemy.exc import IntegrityError
 from app import db
 from .models import User
+from .transaction.models import Transaction
+from .transaction.controllers import Transaction
 
 mod_user = Blueprint('user', __name__, url_prefix='/api')
 #mod_user is an instance of Blueprint class. You can have several such instances across
@@ -37,6 +39,7 @@ def login():
 def logout():
     session.pop('user_id')
     return jsonify(success=True)
+
 @mod_user.route('/signup', methods=['POST'])
 def create_user():
     try:
@@ -48,8 +51,7 @@ def create_user():
 
     if '@' not in email:
         return jsonify(success=False, message="Please enter a valid email"), 400
-        
-
+    
     u = User(name, email, password)
     db.session.add(u)
     try:
@@ -58,3 +60,16 @@ def create_user():
         return jsonify(success=False, message="This email already exists"), 400
 
     return jsonify(success=True)
+
+@mod_user.route('/allbills',method=['GET'])
+def get_all_bills():
+    userid = session['user_id']
+    transaction = Transaction.query.filter(eval(Transaction.split_amongst)[0] == userid).all()
+    for i in transaction:
+        if i is None:
+            return jsonify(success=False), 404
+        else:
+            if i.status is 0:
+                return jsonify(success=True, message="You contributed %s towards the bill %s \n" %(i.split_amongst ?? ,i.description))
+            else:
+                return jsonify(success=True, message="%s bill has been settled \n" %(i.description))
