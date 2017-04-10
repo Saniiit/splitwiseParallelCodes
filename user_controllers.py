@@ -52,7 +52,7 @@ def create_user():
     if '@' not in email:
         return jsonify(success=False, message="Please enter a valid email"), 400
     
-    u = User(name, email, password)
+    u = User(name, email, password,0,0)
     db.session.add(u)
     try:
         db.session.commit()
@@ -61,10 +61,9 @@ def create_user():
 
     return jsonify(success=True)
 
-@mod_user.route('/allbills',method=['GET'])
-def get_all_bills():
-    userid = session['user_id']
-    transaction = Transaction.query.filter(eval(Transaction.split_amongst)[0] == userid).all()
+@mod_user.route('/<id>/allbills',method=['GET'])
+def get_all_bills(id):
+    transaction = Transaction.query.filter(eval(Transaction.split_amongst)[0] == id).all()
     for i in transaction:
         if i is None:
             return jsonify(success=False), 404
